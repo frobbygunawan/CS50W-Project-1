@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect
 
 import markdown2
-
+import random
 
 def index(request):
     return render(request, "encyclopedia/index.html", {
@@ -22,7 +22,8 @@ def title(request, title):
         })
     else:
         return render(request, "encyclopedia/entry.html", {
-            "md_content": markdown2.markdown(md_content)
+            "md_content": markdown2.markdown(md_content),
+            "title":title
         })
 
 # Might need tuning for the case sensitive problem
@@ -39,14 +40,15 @@ def search(request):
         })
     else:
         return render(request, "encyclopedia/entry.html", {
-            "md_content": markdown2.markdown(util.get_entry(entry_title))
+            "md_content": markdown2.markdown(util.get_entry(entry_title)),
+            "title": entry_title
         })
 
 # Should test this first
 def new_entry(request):
-    new_title = request.POST["new_title"]
-    new_desc = request.POST["new_desc"]
-    if request.method == POST:
+    if request.method == "POST":
+        new_title = request.POST["new_title"]
+        new_desc = request.POST["new_desc"]
         if util.get_entry(new_title) != None:
             return render(request, "encyclopedia/error.html", {
             "message": "Sorry, the entry already exist."
@@ -54,6 +56,31 @@ def new_entry(request):
         else:
             util.save_entry(new_title, new_desc)
             return render(request, "encyclopedia/entry.html", {
-                "md_content": markdown2.markdown(util.get_entry(new_title))
+                "md_content": markdown2.markdown(util.get_entry(new_title)),
+                "title":new_title
             })
     return render(request, "encyclopedia/new_entry.html")
+
+def edit(request, title):
+    if request.method == "GET":
+        entry_title = title
+        entry_content = util.get_entry(title)
+        return render(request, "encyclopedia/edit.html", {
+            "title": entry_title,
+            "md_content": entry_content
+        })
+    elif request.method == "POST":
+        util.save_entry(request.POST["edit_title"], request.POST["edit_desc"])
+        return render(request, "encyclopedia/entry.html", {
+                "md_content": markdown2.markdown(util.get_entry(request.POST["edit_title"])),
+                "title":request.POST["edit_title"]
+        })
+
+def random_entry(request):
+    entries = util.list_entries()
+    rand_number = random.randint(0, len(entries) - 1)
+    rand_entry = entries[rand_number]
+    return render(request, "encyclopedia/entry.html", {
+                "md_content": markdown2.markdown(util.get_entry(rand_entry)),
+                "title":rand_entry
+        })
